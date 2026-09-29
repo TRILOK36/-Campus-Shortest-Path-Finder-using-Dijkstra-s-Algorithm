@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Campus Shortest Path Finder – Dijkstra's Algorithm</title>
+<style>
+:root{--bg:#faf8f5;--fg:#1b1b1b;--mut:#6b6660;--card:#fff;--line:#d9d3ca;--red:#ed1c24;--gold:#c9973a;--idle:#b9b3aa;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171514;--fg:#f1ede7;--mut:#a39d94;--card:#221f1d;--line:#3a3532;--red:#ff4a50;--gold:#e0b04f;--idle:#6b655e}}
+:root[data-theme="dark"]{--bg:#171514;--fg:#f1ede7;--mut:#a39d94;--card:#221f1d;--line:#3a3532;--red:#ff4a50;--gold:#e0b04f;--idle:#6b655e}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:24px 16px 48px}
+h1,h2{font-family:Georgia,"Times New Roman",serif;line-height:1.2;margin:0 0 10px}
+h1{font-size:clamp(1.7rem,5vw,2.5rem);border-bottom:3px solid var(--gold);padding-bottom:10px}
+h2{font-size:1.35rem;margin-top:36px}
+p{max-width:68ch}.mut{color:var(--mut)}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:20px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mut);gap:4px}
+select,button{font:inherit;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+button{cursor:pointer;font-weight:600}button.p{background:var(--red);border-color:var(--red);color:#fff}
+button:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+svg{width:100%;height:auto;display:block}
+.ed{stroke:var(--idle);stroke-width:2}.ed.on{stroke:var(--red);stroke-width:5}
+.w{font-size:11px;fill:var(--mut);paint-order:stroke;stroke:var(--card);stroke-width:3}
+.nd{fill:var(--idle);stroke:var(--card);stroke-width:2}.nd.v{fill:var(--gold)}.nd.c{fill:var(--red)}.nd.pa{fill:var(--red)}
+.lb{font-size:12px;fill:var(--fg);text-anchor:middle;font-weight:600;paint-order:stroke;stroke:var(--card);stroke-width:3}
+.msg{min-height:3em;margin:8px 0}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--mut);margin-top:6px}
+.key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+ol{padding-left:22px}li{margin:6px 0;max-width:68ch}
+code{background:var(--card);border:1px solid var(--line);padding:1px 5px;border-radius:4px;font-size:.9em}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:.85rem;color:var(--mut)}
+</style></head><body><main>
+<h1>Campus Shortest Path Finder</h1>
+<p>Pick a start and a destination on the Sandip University campus model. Dijkstra's algorithm finds the shortest walking route, and you can step through every decision it makes.</p>
+
+<section class="tool" aria-label="Path finder">
+<div class="row">
+<label>From<select id="src"></select></label>
+<label>To<select id="dst"></select></label>
+<button class="p" id="run">Find shortest path</button>
+<button id="step">Step</button>
+<button id="reset">Reset</button>
+</div>
+<svg id="map" viewBox="0 0 600 370" role="img" aria-label="Campus graph with buildings as nodes and walkways as weighted edges"></svg>
+<div class="key"><span><i style="background:var(--idle)"></i>Not visited</span><span><i style="background:var(--gold)"></i>Settled</span><span><i style="background:var(--red)"></i>Current / on path</span></div>
+<p class="msg" id="msg" aria-live="polite">Choose two places and press Find shortest path, or press Step to watch one move at a time.</p>
+<div class="scroll"><table><thead><tr><th>Building</th><th>Distance (m)</th><th>Came from</th><th>Status</th></tr></thead><tbody id="tb"></tbody></table></div>
+</section>
+
+<h2>How the algorithm works</h2>
+<p>The campus is a weighted graph. Each building is a node, each walkway is an edge, and the edge weight is its length in metres. Dijkstra's algorithm works on graphs where no weight is negative.</p>
+<ol>
+<li>Set the distance of the start node to 0 and every other node to infinity.</li>
+<li>Pick the unsettled node with the smallest known distance. Call it <code>u</code> and mark it settled.</li>
+<li>For every neighbour <code>v</code> of <code>u</code>, check whether <code>dist[u] + w(u,v)</code> beats <code>dist[v]</code>. If it does, update <code>dist[v]</code> and remember <code>u</code> as its predecessor.</li>
+<li>Repeat from step 2 until the destination is settled. Follow the predecessors backwards to read off the route.</li>
+</ol>
+<p>Think of it as ripples from a stone dropped at the start: the ripple always reaches nearer buildings first, so the first time it touches the destination is by the shortest route.</p>
+
+<h2>Complexity</h2>
+<p>With a binary min-heap, the running time is <code>O((V + E) log V)</code> and the memory is <code>O(V)</code>. This model has 10 buildings and 16 walkways, so the result is instant. The same code scales to a full campus with hundreds of nodes.</p>
+
+<h2>Where it can be used</h2>
+<p>Campus navigation kiosks and mobile apps, visitor guidance, emergency evacuation routing, and any map where the cheapest route matters, such as road networks and network packet routing.</p>
+
+<footer>Micro-project, School of Computer Science and Engineering, Sandip University. Course: B.Tech CSE (AI &amp; ML). Guide: Darshan Ahire. Team: Shahu Trilok Sanjay, Himanshu Bhupendra Gurav, Chaudhary Kunal Ranjit, Dubey Aman Mukesh. Distances are illustrative.</footer>
+</main>
+<script>
+const N={G:["Main Gate",60,190],A:["Admin Block",190,100],S:["SOCSE Block",340,80],U:["Auditorium",450,40],K:["Sports Ground",550,150],L:["Library",180,270],C:["Canteen",350,200],P:["Parking",80,330],W:["Workshop",340,320],H:["Hostel",520,300]};
+const E=[["G","A",120],["G","L",150],["G","P",90],["A","S",160],["A","L",110],["L","C",140],["L","W",170],["P","W",200],["S","C",130],["S","U",110],["C","W",100],["C","K",190],["U","K",150],["K","H",140],["W","H",210],["C","H",180]];
+const adj={};for(const k in N)adj[k]=[];E.forEach(([a,b,w])=>{adj[a].push([b,w]);adj[b].push([a,w])});
+const $=id=>document.getElementById(id),svg=$("map"),NS="http://www.w3.org/2000/svg";
+for(const k in N){for(const s of["src","dst"]){const o=document.createElement("option");o.value=k;o.textContent=N[k][0];$(s).appendChild(o)}}
+$("src").value="G";$("dst").value="H";
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e}
+const edgeEl={},nodeEl={};
+E.forEach(([a,b,w])=>{const A=N[a],B=N[b];edgeEl[a+b]=edgeEl[b+a]=el("line",{class:"ed",x1:A[1],y1:A[2],x2:B[1],y2:B[2]});
+const t=el("text",{class:"w",x:(A[1]+B[1])/2,y:(A[2]+B[2])/2+4,"text-anchor":"middle"});t.textContent=w});
+for(const k in N){nodeEl[k]=el("circle",{class:"nd",cx:N[k][1],cy:N[k][2],r:12});const t=el("text",{class:"lb",x:N[k][1],y:N[k][2]+28});t.textContent=N[k][0]}
+function plan(s,d){const dist={},prev={},done=new Set(),steps=[];for(const k in N)dist[k]=Infinity;dist[s]=0;
+while(true){let u=null;for(const k in N)if(!done.has(k)&&dist[k]<Infinity&&(u===null||dist[k]<dist[u]))u=k;if(u===null)break;
+done.add(u);const upd=[];for(const[v,w]of adj[u])if(!done.has(v)&&dist[u]+w<dist[v]){dist[v]=dist[u]+w;prev[v]=u;upd.push(N[v][0]+" → "+dist[v]+" m")}
+steps.push({u,dist:{...dist},prev:{...prev},done:new Set(done),upd});if(u===d)break}
+return steps}
+let steps=[],i=0,timer=null;
+function path(st,d){const p=[];let c=d;while(c!==undefined){p.unshift(c);c=st.prev[c]}return p}
+function draw(){const st=steps[i-1];const d=$("dst").value;
+for(const k in edgeEl)edgeEl[k].setAttribute("class","ed");
+for(const k in N){nodeEl[k].setAttribute("class","nd"+(st&&st.done.has(k)?" v":""))}
+let msg="Choose two places and press Find shortest path, or press Step to watch one move at a time.";
+if(st){nodeEl[st.u].setAttribute("class","nd c");
+msg="Settled "+N[st.u][0]+" ("+st.dist[st.u]+" m). "+(st.upd.length?"Improved: "+st.upd.join(", ")+".":"No neighbour improved.");
+if(st.u===d){const p=path(st,d);p.forEach((k,j)=>{nodeEl[k].setAttribute("class","nd pa");if(j)edgeEl[p[j-1]+k].setAttribute("class","ed on")});
+msg="Shortest route: "+p.map(k=>N[k][0]).join(" → ")+". Total distance: "+st.dist[d]+" m."}}
+$("msg").textContent=msg;
+$("tb").innerHTML=Object.keys(N).map(k=>{const dv=st?st.dist[k]:(k===$("src").value?0:Infinity);
+return"<tr><td>"+N[k][0]+"</td><td>"+(dv===Infinity?"∞":dv)+"</td><td>"+(st&&st.prev[k]?N[st.prev[k]][0]:"–")+"</td><td>"+(st&&st.done.has(k)?"Settled":"Waiting")+"</td></tr>"}).join("")}
+function init(){clearInterval(timer);steps=plan($("src").value,$("dst").value);i=0;draw()}
+function next(){if(i<steps.length){i++;draw();return true}return false}
+$("step").onclick=()=>{clearInterval(timer);next()};
+$("run").onclick=()=>{init();timer=setInterval(()=>{if(!next())clearInterval(timer)},700)};
+$("reset").onclick=init;$("src").onchange=init;$("dst").onchange=init;init();
+</script></body></html>
